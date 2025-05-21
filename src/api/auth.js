@@ -69,7 +69,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: async (email, password) => {
     try {
-    const response = await api.post('/login', { email, password });
+      const response = await api.post('/login', { email, password });
       console.log('Login API Response:', response);
       
       // Проверяем оба варианта: snake_case и camelCase
@@ -78,6 +78,15 @@ export const authAPI = {
       
       if (!accessToken) {
         throw new Error('No access token received');
+      }
+
+      // Декодируем токен для проверки
+      try {
+        const payload = accessToken.split('.')[1];
+        const decodedPayload = atob(payload);
+        console.log('Decoded token payload:', decodedPayload);
+      } catch (error) {
+        console.error('Failed to decode token:', error);
       }
       
       if (accessToken) {
@@ -141,19 +150,23 @@ export const authAPI = {
 
   isAdmin: async (user_id) => {
     try {
+      console.log('Calling isAdmin API with user_id:', user_id);
       const response = await api.get(`/is-admin/${user_id}`);
-      console.log('IsAdmin response:', response);
+      console.log('IsAdmin API response:', response);
       
       // Проверяем оба варианта: snake_case и camelCase
       const isAdmin = response.is_admin || response.isAdmin;
+      console.log('Parsed isAdmin value:', isAdmin);
+      
       if (typeof isAdmin !== 'boolean') {
-        throw new Error('Invalid admin status response');
+        console.warn('Invalid admin status response:', response);
+        return false;
       }
       
-      return { is_admin: isAdmin };
+      return isAdmin;
     } catch (error) {
-      console.error('IsAdmin error:', error);
-      throw error;
+      console.error('IsAdmin API error:', error);
+      return false;
     }
   },
 
@@ -251,15 +264,16 @@ export const authHelper = {
 
   getUserId: () => {
     const token = localStorage.getItem('access_token');
+    console.log('getUserId - Raw token:', token);
+    
     if (!token) return null;
     
     try {
-      // JWT токен состоит из трех частей, разделенных точками
       const payload = token.split('.')[1];
-      // Декодируем base64
       const decodedPayload = atob(payload);
-      // Парсим JSON
-      const { sub: userId } = JSON.parse(decodedPayload);
+      console.log('getUserId - Decoded payload:', decodedPayload);
+      const { user_id: userId } = JSON.parse(decodedPayload);
+      console.log('getUserId - Parsed userId:', userId);
       return userId;
     } catch (error) {
       console.error('Failed to parse JWT token:', error);
@@ -267,17 +281,36 @@ export const authHelper = {
     }
   },
 
-  isAdmin: () => {
+  getUserName: () => {
     const token = localStorage.getItem('access_token');
-    if (!token) return false;
-    
+    if (!token) return null;
     try {
       const payload = token.split('.')[1];
       const decodedPayload = atob(payload);
-      const { role } = JSON.parse(decodedPayload);
-      return role === 'admin';
+      const parsedPayload = JSON.parse(decodedPayload);
+      return parsedPayload.user_name;
     } catch (error) {
-      console.error('Failed to parse JWT token:', error);
+      console.error('Failed to parse user name from token:', error);
+      return null;
+    }
+  },
+
+  isAdmin: async () => {
+    const token = localStorage.getItem('access_token');
+    console.log('isAdmin - Raw token:', token);
+    
+    if (!token) return false;
+    
+    try {
+      const userId = authHelper.getUserId();
+      if (!userId) return false;
+
+      const response = await authAPI.isAdmin(userId);
+      console.log('isAdmin API response:', response);
+      
+      return response.is_admin || response.isAdmin || false;
+    } catch (error) {
+      console.error('Failed to check admin status:', error);
       return false;
     }
   }

@@ -3,120 +3,10 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { forumAPI } from '../../api/forum';
 import { authHelper } from '../../api/auth';
+import CommentItem from '../comments/CommentItem';
 import '../../styles/PostItem.css';
-
-const CommentItem = ({ comment, onDelete, onUpdate, isAdmin }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(comment.content);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const abortControllerRef = useRef(null);
-  const currentUserId = authHelper.getUserId();
-  const canModify = isAdmin || currentUserId === comment.author_id;
-
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  const handleEdit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await forumAPI.updateComment(comment.id, editedContent);
-      if (onUpdate) onUpdate();
-      setIsEditing(false);
-    } catch (err) {
-      setError(err.message || 'Failed to update comment');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = useCallback(async () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-    
-    if (window.confirm('Are you sure you want to delete this comment?')) {
-      try {
-        await forumAPI.deleteComment(comment.id, abortControllerRef.current.signal);
-        if (onDelete) onDelete(comment.id);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || 'Failed to delete comment');
-        }
-      } finally {
-        abortControllerRef.current = null;
-      }
-    }
-  }, [comment.id, onDelete]);
-
-  if (isEditing) {
-    return (
-      <form className="comment-edit-form" onSubmit={handleEdit}>
-        <div className="form-group">
-          <textarea
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-            placeholder="Write your comment here..."
-            required
-          />
-        </div>
-        <div className="form-actions">
-          <button type="submit" disabled={loading}>
-            {loading ? 'Saving...' : 'Save'}
-          </button>
-          <button type="button" onClick={() => setIsEditing(false)}>
-            Cancel
-          </button>
-        </div>
-        {error && <div className="error-message">{error}</div>}
-      </form>
-    );
-  }
-
-  return (
-    <div className="comment-item">
-      <div className="comment-content">{comment.content}</div>
-      <div className="comment-meta">
-        <span className="comment-author">{comment.author_name}</span>
-        <span className="comment-date">
-          {format(new Date(comment.created_at), 'MMM d, yyyy')}
-        </span>
-        {comment.updated_at && comment.updated_at !== comment.created_at && (
-          <span className="comment-updated">
-            (updated {format(new Date(comment.updated_at), 'MMM d, yyyy')})
-          </span>
-        )}
-      </div>
-      {canModify && (
-        <div className="comment-actions">
-          <button 
-            className="edit-comment-btn"
-            onClick={() => setIsEditing(true)}
-          >
-            Edit
-          </button>
-          <button 
-            className="delete-comment-btn"
-            onClick={handleDelete}
-          >
-            Delete
-          </button>
-        </div>
-      )}
-      {error && <div className="error-message">{error}</div>}
-    </div>
-  );
-};
+import CommentList from '../comments/CommentList';
+import CommentForm from '../comments/CommentForm';
 
 const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -132,6 +22,13 @@ const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
   const abortControllerRef = useRef(null);
   const isAuthenticated = authHelper.isAuthenticated();
   const currentUserId = authHelper.getUserId();
+
+  // Debug logs
+  console.log('PostItem - post:', post);
+  console.log('PostItem - isAdmin prop:', isAdmin);
+  console.log('PostItem - currentUserId:', currentUserId);
+  console.log('PostItem - isAuthenticated:', isAuthenticated);
+  console.log('PostItem - canDelete:', canDelete);
 
   useEffect(() => {
     loadComments();
@@ -213,6 +110,10 @@ const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
     }
   }, [post.id, onDelete]);
 
+  const handleCommentAdded = () => {
+    if (onUpdate) onUpdate();
+  };
+
   if (isDeleted) {
     return null;
   }
@@ -289,50 +190,15 @@ const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
       )}
       {error && <div className="error-message">{error}</div>}
 
-      {/* Comments section */}
       <div className="comments-section">
-        <h4>Comments</h4>
-        {isAuthenticated && !isCommenting && (
-          <button 
-            className="add-comment-btn"
-            onClick={() => setIsCommenting(true)}
-          >
-            Add Comment
-          </button>
+        <CommentList 
+          postId={post.id} 
+          onCommentAdded={handleCommentAdded}
+          isAdmin={isAdmin}
+        />
+        {isAuthenticated && (
+          <CommentForm postId={post.id} onCommentAdded={onUpdate} />
         )}
-        
-        {isCommenting && (
-          <form className="comment-form" onSubmit={handleAddComment}>
-            <div className="form-group">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write your comment here..."
-                required
-              />
-            </div>
-            <div className="form-actions">
-              <button type="submit" disabled={loading}>
-                {loading ? 'Posting...' : 'Post Comment'}
-              </button>
-              <button type="button" onClick={() => setIsCommenting(false)}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
-
-        <div className="comments-list">
-          {comments.map(comment => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              onDelete={handleCommentDelete}
-              onUpdate={handleCommentUpdate}
-              isAdmin={isAdmin}
-            />
-          ))}
-        </div>
       </div>
     </div>
   );

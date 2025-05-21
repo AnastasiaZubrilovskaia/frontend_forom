@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { forumAPI } from '../../api/forum';
+import { authHelper } from '../../api/auth';
 
-const CommentForm = ({ postId }) => {
+const CommentForm = ({ postId, onCommentAdded }) => {
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const currentUserId = authHelper.getUserId();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -12,13 +14,11 @@ const CommentForm = ({ postId }) => {
     setLoading(true);
 
     try {
-      await forumAPI.comments.create({
-        post_id: postId,
-        content
-      });
+      await forumAPI.createComment(postId, content);
       setContent('');
-      // Trigger a refresh of comments (handled by parent)
-      window.location.reload();
+      if (onCommentAdded) {
+        onCommentAdded();
+      }
     } catch (err) {
       setError(err.message || 'Failed to post comment');
     } finally {

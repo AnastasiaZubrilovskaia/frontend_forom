@@ -1,23 +1,116 @@
-import React from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
+import { forumAPI } from '../../api/forum';
+import { authHelper } from '../../api/auth';
+import '../../styles/PostItem.css';
 
-const CommentItem = ({ comment, onDelete, canDelete }) => {
+const CommentItem = ({ comment, onDelete, onUpdate, isAdmin }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(comment.content);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const abortControllerRef = useRef(null);
+  const currentUserId = authHelper.getUserId();
+  const canModify = isAdmin || currentUserId === comment.author_id;
+
+  // Debug logs
+  console.log('CommentItem - comment:', comment);
+  console.log('CommentItem - currentUserId:', currentUserId);
+  console.log('CommentItem - comment.author_id:', comment.author_id);
+  console.log('CommentItem - isAdmin prop:', isAdmin);
+  console.log('CommentItem - canModify:', canModify);
+  console.log('CommentItem - isAdmin || currentUserId === comment.author_id:', isAdmin || currentUserId === comment.author_id);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await forumAPI.updateComment(comment.id, editedContent);
+      if (onUpdate) onUpdate();
+      setIsEditing(false);
+    } catch (err) {
+      setError(err.message || 'Failed to update comment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    abortControllerRef.current = new AbortController();
+    
+    if (window.confirm('Are you sure you want to delete this comment?')) {
+      try {
+        await forumAPI.deleteComment(comment.id, abortControllerRef.current.signal);
+        if (onDelete) onDelete(comment.id);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          setError(err.message || 'Failed to delete comment');
+        }
+      } finally {
+        abortControllerRef.current = null;
+      }
+    }
+  }, [comment.id, onDelete]);
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+    setEditedContent(comment.content);
+    setError('');
+  };
+
+  if (isEditing) {
+    return (
+      <div className="comment-item editing">
+        <form onSubmit={handleEdit}>
+          <textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            placeholder="Write your comment here..."
+            required
+          />
+          <div className="comment-actions">
+            <button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Save'}
+            </button>
+            <button type="button" onClick={handleEditCancel}>
+              Cancel
+            </button>
+          </div>
+          {error && <div className="error-message">{error}</div>}
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="comment-item">
       <div className="comment-header">
         <span className="comment-author">{comment.author_name}</span>
         <span className="comment-date">
-          {format(new Date(comment.created_at), 'MMM d, yyyy HH:mm')}
+          {new Date(comment.created_at).toLocaleString()}
         </span>
       </div>
       <div className="comment-content">{comment.content}</div>
-      {canDelete && (
-        <button 
-          className="delete-comment-btn"
-          onClick={() => onDelete(comment.id)}
-        >
-          Delete
-        </button>
+      {error && <div className="error-message">{error}</div>}
+      {canModify && (
+        <div className="comment-actions">
+          <button onClick={() => setIsEditing(true)} className="edit-btn">Edit</button>
+          <button onClick={handleDelete} className="delete-btn">Delete</button>
+        </div>
       )}
     </div>
   );

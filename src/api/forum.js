@@ -85,7 +85,15 @@ export const forumAPI = {
 
   // Comments
   createComment: async (postId, content) => {
-    return api.post('/comments', { post_id: postId, content });
+    const currentUserId = authHelper.getUserId();
+    const currentUserName = authHelper.getUserName();
+    console.log('Creating comment with user ID:', currentUserId, 'and name:', currentUserName);
+    return api.post('/comments', { 
+      post_id: postId, 
+      content,
+      author_id: currentUserId,
+      author_name: currentUserName
+    });
   },
 
   getComments: async (postId) => {
