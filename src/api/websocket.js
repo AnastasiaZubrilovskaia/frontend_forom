@@ -156,7 +156,11 @@ class WebSocketService {
     }
 
     try {
-      const messageStr = JSON.stringify(message);
+      const userId = Number(authHelper.getUserId());
+      const messageStr = JSON.stringify({
+        ...message,
+        author_id: userId
+      });
       console.log('Sending WebSocket message:', messageStr);
       this.socket.send(messageStr);
     } catch (error) {
