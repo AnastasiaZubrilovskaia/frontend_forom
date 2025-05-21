@@ -1,26 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useWebSocket } from '../../hooks/useWebSocket';
 import { forumAPI } from '../../api/forum';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import { useAuth } from '../../context/AuthContext';
+import { useWebSocket } from '../../context/WebSocketContext';
 
 const MESSAGE_LIFETIME = 24 * 60 * 60 * 1000; // 24 hours
 
 const Chat = () => {
   const { user } = useAuth();
-  const [initialMessages, setInitialMessages] = useState([]);
-  const [allMessages, setAllMessages] = useState([]);
+  const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
-  
-  const wsUrl = `ws://${window.location.hostname}:8080/ws`;
-  const { messages: wsMessages, sendMessage } = useWebSocket(wsUrl);
+  const { messages: wsMessages, sendMessage, isConnected } = useWebSocket();
 
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const messages = await forumAPI.messages.getAll();
-        setInitialMessages(messages);
+        const fetchedMessages = await forumAPI.getMessages();
+        console.log('Fetched messages:', fetchedMessages);
+        setMessages(fetchedMessages);
       } catch (error) {
         console.error('Failed to fetch messages:', error);
       }
@@ -30,44 +28,50 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    const now = new Date().getTime();
-    const filteredMessages = initialMessages.filter(msg => {
-      const messageTime = new Date(msg.created_at).getTime();
-      return now - messageTime < MESSAGE_LIFETIME;
-    });
-    
-    setAllMessages(filteredMessages);
-  }, [initialMessages]);
-
-  useEffect(() => {
     if (wsMessages.length > 0) {
-      setAllMessages(prev => [...prev, ...wsMessages]);
+      console.log('New WebSocket messages:', wsMessages);
+      setMessages(prev => {
+        const newMessages = wsMessages.filter(newMsg => 
+          !prev.some(existingMsg => 
+            existingMsg.id === newMsg.id || 
+            (existingMsg.content === newMsg.content && 
+             existingMsg.author_id === newMsg.author_id && 
+             existingMsg.created_at === newMsg.created_at)
+          )
+        );
+        
+        if (newMessages.length === 0) {
+          console.log('No new messages to add');
+          return prev;
+        }
+
+        console.log('Adding new messages:', newMessages);
+        return [...prev, ...newMessages];
+      });
     }
   }, [wsMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [allMessages]);
+  }, [messages]);
 
   const handleSendMessage = (messageText) => {
-    if (!user) return;
+    if (!user) {
+      console.warn('Cannot send message: user not authenticated');
+      return;
+    }
     
-    const newMessage = {
-      author_id: user.user_id,
-      author_name: user.name,
-      content: messageText,
-      created_at: new Date().toISOString()
-    };
-    
-    sendMessage(newMessage);
-    setAllMessages(prev => [...prev, newMessage]);
+    console.log('Sending message:', messageText);
+    sendMessage({
+      content: messageText
+    });
   };
 
   return (
     <div className="chat-container">
       <h3>Forum Chat</h3>
       <div className="messages-container">
-        {allMessages.map((message, index) => (
+        {messages.map((message, index) => (
           <ChatMessage 
             key={`${message.id || index}_${message.created_at}`}
             message={message}

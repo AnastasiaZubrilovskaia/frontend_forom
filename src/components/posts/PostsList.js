@@ -12,7 +12,7 @@ const PostList = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const postsData = await forumAPI.posts.getAll();
+        const postsData = await forumAPI.getPosts();
         setPosts(postsData);
       } catch (err) {
         setError(err.message || 'Failed to fetch posts');
@@ -26,7 +26,7 @@ const PostList = () => {
 
   const handleDeletePost = async (postId) => {
     try {
-      await forumAPI.posts.delete(postId);
+      await forumAPI.deletePost(postId);
       setPosts(posts.filter(post => post.id !== postId));
     } catch (error) {
       console.error('Failed to delete post:', error);

@@ -11,23 +11,41 @@ const api = axios.create({
   }
 });
 
-// Response interceptor remains mostly the same
+// Request interceptor to add token to all requests
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for handling token refresh
 api.interceptors.response.use(
-  response => response.data,
+  response => {
+    console.log('API Response:', response); // Debug log for all responses
+    return response.data;
+  },
   async error => {
+    console.error('API Error:', error.response?.data || error); // Debug log for all errors
     const originalRequest = error.config;
     
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('refresh')) {
       originalRequest._retry = true;
       
       try {
-        const { access_token } = await refreshToken(localStorage.getItem('access_token'));
-        localStorage.setItem('access_token', access_token);
+        const { accessToken } = await refreshToken(localStorage.getItem('access_token'));
+        localStorage.setItem('access_token', accessToken);
         
-        // For requests that need token, we'll include it in the body
+        // Update the original request with new token
         if (originalRequest.data) {
           const data = JSON.parse(originalRequest.data);
-          originalRequest.data = JSON.stringify({ ...data, access_token });
+          originalRequest.data = JSON.stringify({ ...data, accessToken });
         }
         
         return api(originalRequest);
@@ -48,20 +66,45 @@ api.interceptors.response.use(
   }
 );
 
-
 export const authAPI = {
   login: async (email, password) => {
-    const response = await api.post('/login', { email, password });
-    // Получаем только access_token, игнорируем refreshToken
-    return {
-      access_token: response.data.access_token 
-    };
+    try {
+      const response = await api.post('/login', { email, password });
+      console.log('Login API Response:', response);
+      
+      // Проверяем оба варианта: snake_case и camelCase
+      const accessToken = response.access_token || response.accessToken;
+      const refreshToken = response.refresh_token || response.refreshToken;
+      
+      if (!accessToken) {
+        throw new Error('No access token received');
+      }
+      
+      if (accessToken) {
+        localStorage.setItem('access_token', accessToken);
+      }
+      if (refreshToken) {
+        localStorage.setItem('refresh_token', refreshToken);
+      }
+      
+      return { accessToken, refreshToken };
+    } catch (error) {
+      console.error('Login API error:', error);
+      throw error;
+    }
   },
 
   register: async (name, email, password) => {
     try {
       const response = await api.post('/register', { name, email, password });
-      return response.data; // Должен вернуть { user_id }
+      console.log('Register API Response:', response);
+      
+      const userId = response.user_id || response.userId;
+      if (!userId) {
+        throw new Error('Registration failed - no user ID received');
+      }
+      
+      return { user_id: userId };
     } catch (error) {
       console.error('Register API error:', error);
       throw error;
@@ -71,8 +114,25 @@ export const authAPI = {
   getUserInfo: async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await api.post('/user-info', { access_token: token });
-      return response.data; // Должен вернуть { user_id, name }
+      console.log('Getting user info with token:', token);
+      const response = await api.post('/user-info', { accessToken: token });
+      console.log('Raw user info response:', response);
+      
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid user info response format');
+      }
+
+      const userId = response.user_id || response.userId;
+      const userName = response.name;
+
+      if (!userId || !userName) {
+        throw new Error('Invalid user info - missing required fields');
+      }
+
+      return {
+        user_id: userId,
+        name: userName
+      };
     } catch (error) {
       console.error('GetUserInfo error:', error);
       throw error;
@@ -82,7 +142,15 @@ export const authAPI = {
   isAdmin: async (user_id) => {
     try {
       const response = await api.get(`/is-admin/${user_id}`);
-      return response.data; // Должен вернуть { is_admin: boolean }
+      console.log('IsAdmin response:', response);
+      
+      // Проверяем оба варианта: snake_case и camelCase
+      const isAdmin = response.is_admin || response.isAdmin;
+      if (typeof isAdmin !== 'boolean') {
+        throw new Error('Invalid admin status response');
+      }
+      
+      return { is_admin: isAdmin };
     } catch (error) {
       console.error('IsAdmin error:', error);
       throw error;
@@ -90,39 +158,85 @@ export const authAPI = {
   },
 
   logout: async () => {
-    const token = localStorage.getItem('access_token');
-    return api.post('/logout', { access_token: token });
+    try {
+      const token = localStorage.getItem('access_token');
+      await api.post('/logout', { accessToken: token });
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   },
 
   refreshToken: async (expiredToken) => {
-    return api.post('/refresh', { expired_access_token: expiredToken });
+    try {
+      const response = await api.post('/refresh', { expiredAccessToken: expiredToken });
+      
+      const accessToken = response.access_token || response.accessToken;
+      if (!accessToken) {
+        throw new Error('No access token received in refresh response');
+      }
+      
+      localStorage.setItem('access_token', accessToken);
+      return { accessToken };
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      throw error;
+    }
   },
 
   validateToken: async () => {
-    const token = localStorage.getItem('access_token');
-    return api.post('/validate', { access_token: token });
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await api.post('/validate', { accessToken: token });
+      
+      const isValid = response.valid;
+      if (typeof isValid !== 'boolean') {
+        throw new Error('Invalid token validation response');
+      }
+      
+      return { valid: isValid };
+    } catch (error) {
+      console.error('Validate token error:', error);
+      throw error;
+    }
   },
 
   grantAdmin: async (user_id) => {
-    const token = localStorage.getItem('access_token');
-    return api.post('/grant-admin', { 
-      admin_access_token: token,
-      user_id: user_id 
-    });
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await api.post('/grant-admin', { 
+        adminAccessToken: token,
+        user_id: user_id 
+      });
+      
+      const success = response.success;
+      if (typeof success !== 'boolean') {
+        throw new Error('Invalid grant admin response');
+      }
+      
+      return { success };
+    } catch (error) {
+      console.error('Grant admin error:', error);
+      throw error;
+    }
   },
 };
 
-// Helper functions remain the same
 export const authHelper = {
-  setaccess_token: (token) => {
-    localStorage.setItem('access_token', token);
+  setTokens: (accessToken) => {
+    localStorage.setItem('access_token', accessToken);
   },
-  getaccess_token: () => {
+  getAccessToken: () => {
     return localStorage.getItem('access_token');
   },
   clearAuthData: () => {
     localStorage.removeItem('access_token');
   },
+  isAuthenticated: () => {
+    return !!localStorage.getItem('access_token');
+  }
 };
 
 // Export individual functions

@@ -22,10 +22,36 @@ export const WebSocketProvider = ({ children }) => {
     });
 
     webSocketService.on('message', (message) => {
-      setMessages(prev => [...prev, message]);
+      console.log('Received WebSocket message:', message);
+      
+      // Проверяем, что это сообщение чата
+      if (!message || !message.content || !message.author_id || !message.author_name) {
+        console.warn('Received invalid chat message:', message);
+        return;
+      }
+
+      // Проверяем, нет ли уже такого сообщения
+      setMessages(prev => {
+        const messageExists = prev.some(m => 
+          m.id === message.id || 
+          (m.content === message.content && 
+           m.author_id === message.author_id && 
+           m.created_at === message.created_at)
+        );
+        
+        if (messageExists) {
+          console.log('Duplicate message received, skipping:', message);
+          return prev;
+        }
+
+        console.log('Adding new message to state:', message);
+        return [...prev, message];
+      });
+
       setUnreadCount(prev => prev + 1);
     });
 
+    // Подключаемся к WebSocket независимо от авторизации
     webSocketService.connect();
 
     return () => {
@@ -36,17 +62,31 @@ export const WebSocketProvider = ({ children }) => {
     };
   }, []);
 
+  // Переподключаемся при изменении пользователя
   useEffect(() => {
-    if (user) {
-      // Переподключаемся при изменении пользователя
-      webSocketService.connect();
-    }
+    console.log('User changed, reconnecting WebSocket');
+    webSocketService.connect();
   }, [user]);
 
   const sendMessage = (content) => {
-    if (user) {
-      webSocketService.sendMessage(content);
+    if (!user) {
+      console.warn('Cannot send message: user not authenticated');
+      return;
     }
+
+    if (!content || !content.content) {
+      console.warn('Cannot send message: invalid content');
+      return;
+    }
+
+    const message = {
+      content: content.content,
+      author_id: user.user_id,
+      author_name: user.name
+    };
+
+    console.log('Sending message through WebSocket:', message);
+    webSocketService.sendMessage(message);
   };
 
   const clearUnread = () => {

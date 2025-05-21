@@ -11,82 +11,84 @@ const api = axios.create({
   }
 });
 
-// Интерцептор для добавления токена в тело запроса (вместо заголовка)
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('access_token');
-  if (token && ['post', 'put', 'delete'].includes(config.method.toLowerCase())) {
-    if (config.data) {
-      config.data.access_token = token;
-    } else if (config.params) {
-      config.params.access_token = token;
+// Request interceptor to add token to all requests
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
-// Интерцептор для обработки ошибок
+// Response interceptor for handling errors
 api.interceptors.response.use(
   response => response.data,
   error => {
-    if (error.response) {
-      const apiError = {
-        message: error.response.data?.error || 'Request failed',
-        status: error.response.status,
-        data: error.response.data,
-      };
-      return Promise.reject(apiError);
-    }
-    return Promise.reject({ 
-      message: error.message || 'Network error',
-      status: 0,
-      data: null
+    const errorData = error.response?.data || {};
+    return Promise.reject({
+      message: errorData.message || errorData.error || 'Network Error',
+      status: error.response?.status,
+      data: errorData
     });
   }
 );
 
 export const forumAPI = {
-  posts: {
-    getAll: () => api.get('/posts'),
-    getById: (id) => api.get(`/posts/${id}`),
-    create: (postData) => api.post('/posts', postData),
-    update: (id, postData) => api.put(`/posts/${id}`, postData),
-    delete: (id) => api.delete(`/posts/${id}`),
+  // Posts
+  createPost: async (title, content) => {
+    return api.post('/posts', { title, content });
   },
-  comments: {
-    getByPostId: (postId) => api.get('/comments', { params: { post_id: postId } }),
-    getById: (id) => api.get(`/comments/${id}`),
-    create: (commentData) => api.post('/comments', commentData),
-    update: (id, commentData) => api.put(`/comments/${id}`, commentData),
-    delete: (id) => api.delete(`/comments/${id}`),
+
+  getPosts: async () => {
+    return api.get('/posts');
   },
-  messages: {
-    getAll: () => api.get('/chat')
+
+  getPost: async (id) => {
+    return api.get(`/posts/${id}`);
+  },
+
+  updatePost: async (id, title, content) => {
+    return api.put(`/posts/${id}`, { title, content });
+  },
+
+  deletePost: async (id) => {
+    return api.delete(`/posts/${id}`);
+  },
+
+  // Comments
+  createComment: async (postId, content) => {
+    return api.post('/comments', { post_id: postId, content });
+  },
+
+  getComments: async (postId) => {
+    return api.get(`/comments?post_id=${postId}`);
+  },
+
+  updateComment: async (id, content) => {
+    return api.put(`/comments/${id}`, { content });
+  },
+
+  deleteComment: async (id) => {
+    return api.delete(`/comments/${id}`);
+  },
+
+  // Messages
+  getMessages: async () => {
+    return api.get('/chat');
+  },
+
+  createMessage: async (content) => {
+    return api.post('/chat', { content });
+  },
+
+  deleteMessage: async (id) => {
+    return api.delete(`/chat/${id}`);
   }
 };
 
-// Для удобства экспортируем отдельные методы
-export const {
-  getAllPosts,
-  getPostById,
-  createPost,
-  updatePost,
-  deletePost,
-  getCommentsByPostId,
-  getCommentById,
-  createComment,
-  updateComment,
-  deleteComment,
-  getAllMessages
-} = {
-  getAllPosts: forumAPI.posts.getAll,
-  getPostById: forumAPI.posts.getById,
-  createPost: forumAPI.posts.create,
-  updatePost: forumAPI.posts.update,
-  deletePost: forumAPI.posts.delete,
-  getCommentsByPostId: forumAPI.comments.getByPostId,
-  getCommentById: forumAPI.comments.getById,
-  createComment: forumAPI.comments.create,
-  updateComment: forumAPI.comments.update,
-  deleteComment: forumAPI.comments.delete,
-  getAllMessages: forumAPI.messages.getAll
-};
+export default forumAPI;
