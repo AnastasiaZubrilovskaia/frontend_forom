@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { forumAPI } from '../../api/forum';
+import { authHelper } from '../../api/auth';
 import CommentItem from './CommentItem';
 
-const CommentList = ({ postId, isAdmin, onCommentAdded }) => {
+const CommentList = ({ postId, commentVersion }) => {
   const [comments, setComments] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Debug logs
-  console.log('CommentList - isAdmin prop:', isAdmin);
+  console.log('CommentList - isAdmin:', isAdmin);
   console.log('CommentList - postId:', postId);
+  console.log('CommentList - commentVersion:', commentVersion);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const isAdminStatus = await authHelper.isAdmin();
+      console.log('CommentList - Admin status:', isAdminStatus);
+      setIsAdmin(isAdminStatus);
+    };
+    checkAdmin();
+  }, []);
 
   const loadComments = async () => {
     try {
@@ -26,7 +38,7 @@ const CommentList = ({ postId, isAdmin, onCommentAdded }) => {
 
   useEffect(() => {
     loadComments();
-  }, [postId]);
+  }, [postId, commentVersion]);
 
   if (loading) {
     return <div>Loading comments...</div>;

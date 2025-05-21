@@ -8,7 +8,7 @@ import '../../styles/PostItem.css';
 import CommentList from '../comments/CommentList';
 import CommentForm from '../comments/CommentForm';
 
-const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
+const PostItem = ({ post, onDelete, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(post.title);
   const [editedContent, setEditedContent] = useState(post.content);
@@ -19,16 +19,34 @@ const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const abortControllerRef = useRef(null);
   const isAuthenticated = authHelper.isAuthenticated();
   const currentUserId = authHelper.getUserId();
+  const [commentVersion, setCommentVersion] = useState(0);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const isAdminStatus = await authHelper.isAdmin();
+      setIsAdmin(isAdminStatus);
+    };
+    checkAdmin();
+  }, []);
+
+  const isAdminBoolean = Boolean(isAdmin);
+  const canEdit = currentUserId === post.author_id;
+  const canDelete = isAdminBoolean || currentUserId === post.author_id;
 
   // Debug logs
   console.log('PostItem - post:', post);
-  console.log('PostItem - isAdmin prop:', isAdmin);
+  console.log('PostItem - isAdmin (local state):', isAdmin);
+  console.log('PostItem - isAdminBoolean:', isAdminBoolean);
   console.log('PostItem - currentUserId:', currentUserId);
   console.log('PostItem - isAuthenticated:', isAuthenticated);
+  console.log('PostItem - canEdit:', canEdit);
   console.log('PostItem - canDelete:', canDelete);
+  console.log('PostItem - post.id:', post.id);
+  console.log('PostItem - post.author_id:', post.author_id);
 
   useEffect(() => {
     loadComments();
@@ -111,7 +129,7 @@ const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
   }, [post.id, onDelete]);
 
   const handleCommentAdded = () => {
-    if (onUpdate) onUpdate();
+    setCommentVersion(v => v + 1);
   };
 
   if (isDeleted) {
@@ -170,22 +188,26 @@ const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
         </div>
       </div>
       <div className="post-content">{post.content}</div>
-      {canDelete && (
+      {(canEdit || canDelete) && (
         <div className="post-actions">
-          <button 
-            className="edit-post-btn"
-            onClick={() => setIsEditing(true)}
-            disabled={isDeleting}
-          >
-            Edit
-          </button>
-          <button 
-            className="delete-post-btn"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </button>
+          {canEdit && (
+            <button 
+              className="edit-post-btn"
+              onClick={() => setIsEditing(true)}
+              disabled={isDeleting}
+            >
+              Edit
+            </button>
+          )}
+          {canDelete && (
+            <button 
+              className="delete-post-btn"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          )}
         </div>
       )}
       {error && <div className="error-message">{error}</div>}
@@ -193,11 +215,10 @@ const PostItem = ({ post, onDelete, canDelete, onUpdate, isAdmin }) => {
       <div className="comments-section">
         <CommentList 
           postId={post.id} 
-          onCommentAdded={handleCommentAdded}
-          isAdmin={isAdmin}
+          commentVersion={commentVersion}
         />
         {isAuthenticated && (
-          <CommentForm postId={post.id} onCommentAdded={onUpdate} />
+          <CommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
         )}
       </div>
     </div>

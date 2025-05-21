@@ -24,12 +24,10 @@ const PostList = () => {
         if (currentUserId) {
           console.log('Checking admin status for user:', currentUserId);
           try {
-            const adminStatus = await authAPI.isAdmin(currentUserId);
-            console.log('Admin status received:', adminStatus);
-            // Проверяем оба варианта: snake_case и camelCase
-            const isAdminValue = adminStatus.is_admin || adminStatus.isAdmin;
-            console.log('Parsed isAdmin value:', isAdminValue);
-            setIsAdmin(isAdminValue);
+            const isAdminStatus = await authHelper.isAdmin();
+            console.log('Admin status received:', isAdminStatus);
+            setIsAdmin(isAdminStatus);
+            console.log('Set isAdmin to:', isAdminStatus);
           } catch (err) {
             console.error('Failed to check admin status:', err);
             setIsAdmin(false);
@@ -101,7 +99,6 @@ const PostList = () => {
             post={post}
             onDelete={handleDelete}
             onUpdate={handleUpdate}
-            canDelete={isAdmin || currentUserId === post.author_id}
             isAdmin={isAdmin}
           />
         );

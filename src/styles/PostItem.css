@@ -245,4 +245,102 @@ button:disabled {
   background-color: #6c757d !important;
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+/* Стили для кнопок действий поста */
+.post-actions button,
+.comment-actions button,
+.create-post-btn,
+.delete-post-btn,
+.edit-post-btn,
+.comment-form button,
+.comment-item button {
+  padding: 6px 16px;
+  margin: 0 4px 4px 0;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Кнопка удалить */
+.delete-post-btn,
+.comment-actions .delete-btn {
+  background: #ff4d4f;
+  color: #fff;
+}
+.delete-post-btn:hover,
+.comment-actions .delete-btn:hover {
+  background: #d9363e;
+}
+
+/* Кнопка редактировать */
+.edit-post-btn,
+.comment-actions .edit-btn {
+  background: #52c41a;
+  color: #fff;
+}
+.edit-post-btn:hover,
+.comment-actions .edit-btn:hover {
+  background: #389e0d;
+}
+
+/* Кнопка отправки комментария */
+.comment-form button,
+.post-edit-form button[type="submit"] {
+  background: #1890ff;
+  color: #fff;
+}
+.comment-form button:hover,
+.post-edit-form button[type="submit"]:hover {
+  background: #1765ad;
+}
+
+/* Кнопка отмены */
+.post-edit-form button[type="button"],
+.comment-item .comment-actions button[type="button"] {
+  background: #f0f0f0;
+  color: #333;
+}
+.post-edit-form button[type="button"]:hover,
+.comment-item .comment-actions button[type="button"]:hover {
+  background: #d9d9d9;
+}
+
+/* Кнопка создания поста */
+.create-post-btn,
+.create-post-form button[type="submit"] {
+  background: #1890ff;
+  color: #fff;
+  margin-left: 8px;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.create-post-btn:hover,
+.create-post-form button[type="submit"]:hover {
+  background: #1765ad;
+}
+
+/* Кнопка отправки сообщения в чате */
+.send-btn,
+input[type="submit"].send-btn,
+button.send-btn {
+  background: #52c41a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.send-btn:hover,
+input[type="submit"].send-btn:hover,
+button.send-btn:hover {
+  background: #389e0d;
 } 

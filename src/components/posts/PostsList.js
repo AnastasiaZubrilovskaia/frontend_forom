@@ -64,7 +64,7 @@ const PostList = () => {
               post={post}
               onDelete={handleDeletePost}
               onUpdate={handleUpdatePost}
-              canDelete={canDelete}
+              canDeleteProp={canDelete}
             />
           );
         })

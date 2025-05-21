@@ -25,11 +25,11 @@ export const AuthProvider = ({ children }) => {
           const userInfo = await authAPI.getUserInfo();
           console.log('Initial user info:', userInfo); // Debug log
           if (userInfo && userInfo.user_id) {
-            setUser(userInfo);
-            
-            // Check admin status
-            const adminStatus = await authAPI.isAdmin(userInfo.user_id);
-            setIsAdmin(adminStatus.is_admin);
+          setUser(userInfo);
+          
+          // Check admin status
+          const adminStatus = await authAPI.isAdmin(userInfo.user_id);
+          setIsAdmin(adminStatus.is_admin);
           } else {
             throw new Error('Invalid user info received');
           }

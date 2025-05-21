@@ -4,22 +4,24 @@ import { forumAPI } from '../../api/forum';
 import { authHelper } from '../../api/auth';
 import '../../styles/PostItem.css';
 
-const CommentItem = ({ comment, onDelete, onUpdate, isAdmin }) => {
+const CommentItem = ({ comment, onDelete, onUpdate, isAdmin = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(comment.content);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const abortControllerRef = useRef(null);
   const currentUserId = authHelper.getUserId();
-  const canModify = isAdmin || currentUserId === comment.author_id;
+  const canEdit = currentUserId === comment.author_id;
+  const isAdminBoolean = Boolean(isAdmin);
+  const canDelete = isAdminBoolean || currentUserId === comment.author_id;
 
   // Debug logs
   console.log('CommentItem - comment:', comment);
   console.log('CommentItem - currentUserId:', currentUserId);
   console.log('CommentItem - comment.author_id:', comment.author_id);
   console.log('CommentItem - isAdmin prop:', isAdmin);
-  console.log('CommentItem - canModify:', canModify);
-  console.log('CommentItem - isAdmin || currentUserId === comment.author_id:', isAdmin || currentUserId === comment.author_id);
+  console.log('CommentItem - isAdminBoolean:', isAdminBoolean);
+  console.log('CommentItem - canDelete:', canDelete);
 
   useEffect(() => {
     return () => {
@@ -106,10 +108,14 @@ const CommentItem = ({ comment, onDelete, onUpdate, isAdmin }) => {
       </div>
       <div className="comment-content">{comment.content}</div>
       {error && <div className="error-message">{error}</div>}
-      {canModify && (
+      {(canEdit || canDelete) && (
         <div className="comment-actions">
-          <button onClick={() => setIsEditing(true)} className="edit-btn">Edit</button>
-          <button onClick={handleDelete} className="delete-btn">Delete</button>
+          {canEdit && (
+            <button onClick={() => setIsEditing(true)} className="edit-btn">Edit</button>
+          )}
+          {canDelete && (
+            <button onClick={handleDelete} className="delete-btn">Delete</button>
+          )}
         </div>
       )}
     </div>

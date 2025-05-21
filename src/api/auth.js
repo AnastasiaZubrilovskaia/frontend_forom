@@ -158,12 +158,8 @@ export const authAPI = {
       const isAdmin = response.is_admin || response.isAdmin;
       console.log('Parsed isAdmin value:', isAdmin);
       
-      if (typeof isAdmin !== 'boolean') {
-        console.warn('Invalid admin status response:', response);
-        return false;
-      }
-      
-      return isAdmin;
+      // Преобразуем в boolean, если значение не boolean
+      return Boolean(isAdmin);
     } catch (error) {
       console.error('IsAdmin API error:', error);
       return false;
@@ -308,11 +304,18 @@ export const authHelper = {
       const response = await authAPI.isAdmin(userId);
       console.log('isAdmin API response:', response);
       
-      return response.is_admin || response.isAdmin || false;
+      // Сохраняем статус админа в localStorage
+      localStorage.setItem('is_admin', response);
+      
+      return response;
     } catch (error) {
       console.error('Failed to check admin status:', error);
       return false;
     }
+  },
+
+  getIsAdmin: () => {
+    return localStorage.getItem('is_admin') === 'true';
   }
 };
 
