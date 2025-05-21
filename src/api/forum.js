@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { authHelper, authAPI } from './auth';
 
 const API_URL = process.env.API_URL_FORUM || 'http://localhost:8080/api';
 
@@ -14,7 +15,7 @@ const api = axios.create({
 // Request interceptor to add token to all requests
 api.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('access_token');
+    const token = authHelper.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,16 +26,38 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling errors
+// Response interceptor to handle token refresh
 api.interceptors.response.use(
   response => response.data,
-  error => {
-    const errorData = error.response?.data || {};
-    return Promise.reject({
-      message: errorData.message || errorData.error || 'Network Error',
-      status: error.response?.status,
-      data: errorData
-    });
+  async error => {
+    const originalRequest = error.config;
+
+    // Не повторяем запросы на удаление и запросы на обновление токена
+    if ((error.response?.status === 401 || error.response?.status === 403) && 
+        !originalRequest._retry && 
+        !originalRequest.url.includes('/auth/refresh') &&
+        originalRequest.method !== 'DELETE') {
+      originalRequest._retry = true;
+
+      try {
+        // Пробуем обновить токен
+        const token = authHelper.getAccessToken();
+        if (token) {
+          const { accessToken } = await authAPI.refreshToken(token);
+          authHelper.setTokens(accessToken);
+
+          // Повторяем оригинальный запрос с новым токеном
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Failed to refresh token:', refreshError);
+        // Если не удалось обновить токен, перенаправляем на страницу входа
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
   }
 );
 
@@ -56,8 +79,8 @@ export const forumAPI = {
     return api.put(`/posts/${id}`, { title, content });
   },
 
-  deletePost: async (id) => {
-    return api.delete(`/posts/${id}`);
+  deletePost: async (id, signal) => {
+    return api.delete(`/posts/${id}`, { signal });
   },
 
   // Comments
@@ -73,8 +96,8 @@ export const forumAPI = {
     return api.put(`/comments/${id}`, { content });
   },
 
-  deleteComment: async (id) => {
-    return api.delete(`/comments/${id}`);
+  deleteComment: async (id, signal) => {
+    return api.delete(`/comments/${id}`, { signal });
   },
 
   // Messages

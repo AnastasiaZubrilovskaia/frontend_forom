@@ -69,7 +69,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: async (email, password) => {
     try {
-      const response = await api.post('/login', { email, password });
+    const response = await api.post('/login', { email, password });
       console.log('Login API Response:', response);
       
       // Проверяем оба варианта: snake_case и camelCase
@@ -159,7 +159,7 @@ export const authAPI = {
 
   logout: async () => {
     try {
-      const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
       await api.post('/logout', { accessToken: token });
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -188,7 +188,7 @@ export const authAPI = {
 
   validateToken: async () => {
     try {
-      const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
       const response = await api.post('/validate', { accessToken: token });
       
       const isValid = response.valid;
@@ -205,11 +205,11 @@ export const authAPI = {
 
   grantAdmin: async (user_id) => {
     try {
-      const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
       const response = await api.post('/grant-admin', { 
         adminAccessToken: token,
-        user_id: user_id 
-      });
+      user_id: user_id 
+    });
       
       const success = response.success;
       if (typeof success !== 'boolean') {
@@ -225,17 +225,61 @@ export const authAPI = {
 };
 
 export const authHelper = {
-  setTokens: (accessToken) => {
-    localStorage.setItem('access_token', accessToken);
-  },
   getAccessToken: () => {
     return localStorage.getItem('access_token');
   },
-  clearAuthData: () => {
-    localStorage.removeItem('access_token');
+
+  getRefreshToken: () => {
+    return localStorage.getItem('refresh_token');
   },
+
+  setTokens: (accessToken, refreshToken) => {
+    localStorage.setItem('access_token', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
+  },
+
+  clearTokens: () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  },
+
   isAuthenticated: () => {
     return !!localStorage.getItem('access_token');
+  },
+
+  getUserId: () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    
+    try {
+      // JWT токен состоит из трех частей, разделенных точками
+      const payload = token.split('.')[1];
+      // Декодируем base64
+      const decodedPayload = atob(payload);
+      // Парсим JSON
+      const { sub: userId } = JSON.parse(decodedPayload);
+      return userId;
+    } catch (error) {
+      console.error('Failed to parse JWT token:', error);
+      return null;
+    }
+  },
+
+  isAdmin: () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return false;
+    
+    try {
+      const payload = token.split('.')[1];
+      const decodedPayload = atob(payload);
+      const { role } = JSON.parse(decodedPayload);
+      return role === 'admin';
+    } catch (error) {
+      console.error('Failed to parse JWT token:', error);
+      return false;
+    }
   }
 };
 

@@ -46,32 +46,32 @@ class WebSocketService {
           // Если не удалось обновить токен, продолжаем без токена
           currentToken = null;
         }
-      }
+    }
 
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.hostname + ':8080';
       const wsUrl = currentToken 
         ? `${protocol}//${host}/ws?token=${encodeURIComponent(currentToken)}`
-        : `${protocol}//${host}/ws`;
+      : `${protocol}//${host}/ws`;
 
       console.log('Connecting to WebSocket:', wsUrl);
 
-      this.socket = new WebSocket(wsUrl);
+    this.socket = new WebSocket(wsUrl);
 
-      this.socket.onopen = () => {
+    this.socket.onopen = () => {
         console.log('WebSocket connection opened');
         this.isConnecting = false;
-        this.reconnectAttempts = 0;
-        this.reconnectDelay = 1000;
-        this.callbacks['connect']?.();
-      };
+      this.reconnectAttempts = 0;
+      this.reconnectDelay = 1000;
+      this.callbacks['connect']?.();
+    };
 
       this.socket.onclose = async (event) => {
         console.log('WebSocket connection closed:', event.code, event.reason);
         this.isConnecting = false;
-        this.callbacks['disconnect']?.(event);
+      this.callbacks['disconnect']?.(event);
         
-        if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
+      if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
           console.log(`Attempting to reconnect (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})...`);
           
           // Пробуем обновить токен перед переподключением
@@ -85,22 +85,22 @@ class WebSocketService {
             console.error('Failed to refresh token during reconnect:', error);
           }
 
-          setTimeout(() => {
-            this.reconnectAttempts++;
-            this.reconnectDelay *= 2;
-            this.connect();
-          }, this.reconnectDelay);
-        }
-      };
+        setTimeout(() => {
+          this.reconnectAttempts++;
+          this.reconnectDelay *= 2;
+          this.connect();
+        }, this.reconnectDelay);
+      }
+    };
 
-      this.socket.onerror = (error) => {
+    this.socket.onerror = (error) => {
         console.error('WebSocket error:', error);
-        this.callbacks['error']?.(error);
-      };
+      this.callbacks['error']?.(error);
+    };
 
       this.socket.onmessage = async (event) => {
-        try {
-          const message = JSON.parse(event.data);
+      try {
+        const message = JSON.parse(event.data);
           // Игнорируем сообщения от dev-сервера
           if (message.type && ['hot', 'liveReload', 'reconnect', 'overlay', 'hash', 'warnings'].includes(message.type)) {
             return;
@@ -129,11 +129,11 @@ class WebSocketService {
           }
 
           console.log('WebSocket message received:', message);
-          this.callbacks['message']?.(message);
-        } catch (e) {
+        this.callbacks['message']?.(message);
+      } catch (e) {
           console.error('Failed to parse WebSocket message:', e, event.data);
-        }
-      };
+      }
+    };
     } catch (error) {
       console.error('Failed to establish WebSocket connection:', error);
       this.isConnecting = false;

@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error('Auth initialization error:', error);
-          authHelper.clearAuthData();
+          authHelper.clearTokens();
         }
       }
       setLoading(false);
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      authHelper.clearAuthData(); // Clear any partial auth data
+      authHelper.clearTokens(); // Clear any partial auth data
       return {
         success: false,
         message: error.message || 'Login failed'
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authAPI.logout();
     } finally {
-      authHelper.clearAuthData();
+      authHelper.clearTokens();
       setUser(null);
       setIsAdmin(false);
       navigate('/');

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { forumAPI } from '../../api/forum';
 import { useAuth } from '../../context/AuthContext';
+
 const PostForm = ({ onSuccess }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -14,14 +15,7 @@ const PostForm = ({ onSuccess }) => {
     setLoading(true);
 
     try {
-      const postData = {
-        title,
-        content,
-        author_id: user.user_id,
-        author_name: user.name
-      };
-      
-      await forumAPI.posts.create(postData);
+      await forumAPI.createPost(title, content);
       setTitle('');
       setContent('');
       if (onSuccess) onSuccess();

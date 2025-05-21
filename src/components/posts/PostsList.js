@@ -9,18 +9,19 @@ const PostList = () => {
   const [error, setError] = useState(null);
   const { user, isAdmin } = useAuth();
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const postsData = await forumAPI.getPosts();
-        setPosts(postsData);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch posts');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPosts = async () => {
+    try {
+      const postsData = await forumAPI.getPosts();
+      console.log('Fetched posts:', postsData); // Debug log
+      setPosts(postsData);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch posts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPosts();
   }, []);
 
@@ -33,6 +34,10 @@ const PostList = () => {
     }
   };
 
+  const handleUpdatePost = async () => {
+    await fetchPosts();
+  };
+
   if (loading) return <div className="loading">Loading posts...</div>;
   if (error) return <div className="error">Error: {error}</div>;
 
@@ -41,14 +46,28 @@ const PostList = () => {
       {posts.length === 0 ? (
         <div className="no-posts">No posts yet. Be the first to create one!</div>
       ) : (
-        posts.map(post => (
-          <PostItem 
-            key={post.id}
-            post={post}
-            onDelete={handleDeletePost}
-            canDelete={isAdmin || (user && post.author_id === user.user_id)}
-          />
-        ))
+        posts.map(post => {
+          // Преобразуем ID в числа для корректного сравнения
+          const postAuthorId = Number(post.author_id);
+          const userId = Number(user?.user_id);
+          const canDelete = isAdmin || (user && postAuthorId === userId);
+          
+          console.log('Post:', post);
+          console.log('User:', user);
+          console.log('Post author ID:', postAuthorId);
+          console.log('User ID:', userId);
+          console.log('Can delete:', canDelete);
+          
+          return (
+            <PostItem 
+              key={post.id}
+              post={post}
+              onDelete={handleDeletePost}
+              onUpdate={handleUpdatePost}
+              canDelete={canDelete}
+            />
+          );
+        })
       )}
     </div>
   );
