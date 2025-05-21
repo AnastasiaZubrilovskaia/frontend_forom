@@ -57,7 +57,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
       const commentsData = await forumAPI.getComments(post.id);
       setComments(commentsData);
     } catch (err) {
-      setError('Failed to load comments');
+      setError('Не удалось загрузить комментарии');
     }
   };
 
@@ -74,7 +74,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
       setIsCommenting(false);
       loadComments();
     } catch (err) {
-      setError(err.message || 'Failed to add comment');
+      setError(err.message || 'Не удалось добавить комментарий');
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
       if (onUpdate) onUpdate();
       setIsEditing(false);
     } catch (err) {
-      setError(err.message || 'Failed to update post');
+      setError(err.message || 'Не удалось обновить пост');
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
 
     abortControllerRef.current = new AbortController();
     
-    if (window.confirm('Are you sure you want to delete this post?')) {
+    if (window.confirm('Вы уверены, что хотите удалить этот пост?')) {
       setIsDeleting(true);
       try {
         await forumAPI.deletePost(post.id, abortControllerRef.current.signal);
@@ -119,7 +119,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
         if (onDelete) onDelete(post.id);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setError(err.message || 'Failed to delete post');
+          setError(err.message || 'Не удалось удалить пост');
           setIsDeleting(false);
         }
       } finally {
@@ -144,7 +144,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
             type="text"
             value={editedTitle}
             onChange={(e) => setEditedTitle(e.target.value)}
-            placeholder="Post title"
+            placeholder="Заголовок поста"
             required
           />
         </div>
@@ -152,16 +152,16 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
           <textarea
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-            placeholder="Write your post content here..."
+            placeholder="Напишите текст поста..."
             required
           />
         </div>
         <div className="form-actions">
           <button type="submit" disabled={loading}>
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? 'Сохраняю...' : 'Сохранить'}
           </button>
           <button type="button" onClick={() => setIsEditing(false)}>
-            Cancel
+            Отмена
           </button>
         </div>
         {error && <div className="error-message">{error}</div>}
@@ -178,11 +178,11 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
         <div className="post-meta">
           <span className="post-author">{post.author_name}</span>
           <span className="post-date">
-            {format(new Date(post.created_at), 'MMM d, yyyy')}
+            {format(new Date(post.created_at), 'd MMM yyyy', {locale: undefined})}
           </span>
           {post.updated_at && post.updated_at !== post.created_at && (
             <span className="post-updated">
-              (updated {format(new Date(post.updated_at), 'MMM d, yyyy')})
+              (обновлено {format(new Date(post.updated_at), 'd MMM yyyy', {locale: undefined})})
             </span>
           )}
         </div>
@@ -196,7 +196,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
               onClick={() => setIsEditing(true)}
               disabled={isDeleting}
             >
-              Edit
+              Редактировать
             </button>
           )}
           {canDelete && (
@@ -205,7 +205,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? 'Удаляю...' : 'Удалить'}
             </button>
           )}
         </div>

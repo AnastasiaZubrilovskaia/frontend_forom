@@ -33,12 +33,12 @@ const CommentForm = ({ postId, onCommentAdded }) => {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Write your comment here..."
+          placeholder="Напишите комментарий..."
           required
         />
       </div>
       <button type="submit" disabled={loading}>
-        {loading ? 'Posting...' : 'Post Comment'}
+        {loading ? 'Отправка...' : 'Оставить комментарий'}
       </button>
     </form>
   );

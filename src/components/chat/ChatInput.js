@@ -17,9 +17,9 @@ const ChatInput = ({ onSend }) => {
         type="text"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type your message..."
+        placeholder="Введите сообщение..."
       />
-      <button type="submit">Send</button>
+      <button type="submit">Отправить</button>
     </form>
   );
 };

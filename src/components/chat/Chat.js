@@ -69,7 +69,7 @@ const Chat = () => {
 
   return (
     <div className="chat-container">
-      <h3>Forum Chat</h3>
+      <h3>Чат форума</h3>
       <div className="messages-container">
         {messages.map((message, index) => (
           <ChatMessage 
@@ -84,7 +84,7 @@ const Chat = () => {
         <ChatInput onSend={handleSendMessage} />
       ) : (
         <div className="chat-login-prompt">
-          Please log in to send messages
+          Войдите, чтобы отправлять сообщения
         </div>
       )}
     </div>

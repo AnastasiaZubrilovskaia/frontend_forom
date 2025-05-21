@@ -28,14 +28,14 @@ const PostForm = ({ onSuccess }) => {
 
   return (
     <form className="post-form" onSubmit={handleSubmit}>
-      <h3>Create New Post</h3>
+      <h3>Создать новый пост</h3>
       {error && <div className="error-message">{error}</div>}
       <div className="form-group">
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Post title"
+          placeholder="Заголовок поста"
           required
         />
       </div>
@@ -43,12 +43,12 @@ const PostForm = ({ onSuccess }) => {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Write your post content here..."
+          placeholder="Напишите текст поста..."
           required
         />
       </div>
       <button type="submit" disabled={loading}>
-        {loading ? 'Posting...' : 'Create Post'}
+        {loading ? 'Сохраняю...' : 'Создать пост'}
       </button>
     </form>
   );

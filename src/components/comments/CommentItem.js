@@ -41,7 +41,7 @@ const CommentItem = ({ comment, onDelete, onUpdate, isAdmin = false }) => {
       if (onUpdate) onUpdate();
       setIsEditing(false);
     } catch (err) {
-      setError(err.message || 'Failed to update comment');
+      setError(err.message || 'Не удалось обновить комментарий');
     } finally {
       setLoading(false);
     }
@@ -54,13 +54,13 @@ const CommentItem = ({ comment, onDelete, onUpdate, isAdmin = false }) => {
 
     abortControllerRef.current = new AbortController();
     
-    if (window.confirm('Are you sure you want to delete this comment?')) {
+    if (window.confirm('Вы уверены, что хотите удалить этот комментарий?')) {
       try {
         await forumAPI.deleteComment(comment.id, abortControllerRef.current.signal);
         if (onDelete) onDelete(comment.id);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setError(err.message || 'Failed to delete comment');
+          setError(err.message || 'Не удалось удалить комментарий');
         }
       } finally {
         abortControllerRef.current = null;
@@ -81,15 +81,15 @@ const CommentItem = ({ comment, onDelete, onUpdate, isAdmin = false }) => {
           <textarea
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-            placeholder="Write your comment here..."
+            placeholder="Напишите комментарий..."
             required
           />
           <div className="comment-actions">
-            <button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save'}
+            <button type="submit" disabled={loading} className="edit-btn">
+              {loading ? 'Сохраняю...' : 'Сохранить'}
             </button>
             <button type="button" onClick={handleEditCancel}>
-              Cancel
+              Отмена
             </button>
           </div>
           {error && <div className="error-message">{error}</div>}
@@ -111,10 +111,10 @@ const CommentItem = ({ comment, onDelete, onUpdate, isAdmin = false }) => {
       {(canEdit || canDelete) && (
         <div className="comment-actions">
           {canEdit && (
-            <button onClick={() => setIsEditing(true)} className="edit-btn">Edit</button>
+            <button onClick={() => setIsEditing(true)} className="edit-btn">Редактировать</button>
           )}
           {canDelete && (
-            <button onClick={handleDelete} className="delete-btn">Delete</button>
+            <button onClick={handleDelete} className="delete-btn">Удалить</button>
           )}
         </div>
       )}
