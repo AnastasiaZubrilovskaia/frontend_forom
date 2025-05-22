@@ -64,7 +64,8 @@ export const WebSocketProvider = ({ children }) => {
 
   // Переподключаемся при изменении пользователя
   useEffect(() => {
-    console.log('User changed, reconnecting WebSocket');
+    console.log('User changed in WebSocketContext, reconnecting...');
+    webSocketService.disconnect();
     webSocketService.connect();
   }, [user]);
 

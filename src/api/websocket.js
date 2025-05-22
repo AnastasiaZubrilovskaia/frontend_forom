@@ -49,12 +49,13 @@ class WebSocketService {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.hostname + ':8080';
-      const wsUrl = currentToken 
-        ? `${protocol}//${host}/ws?token=${encodeURIComponent(currentToken)}`
+    const host = window.location.hostname + ':8080';
+    const wsUrl = currentToken 
+      ? `${protocol}//${host}/ws?token=${encodeURIComponent(currentToken)}`
       : `${protocol}//${host}/ws`;
 
-      console.log('Connecting to WebSocket:', wsUrl);
+    console.log('Connecting to WebSocket with token:', currentToken ? 'present' : 'absent');
+    console.log('WebSocket URL:', wsUrl);
 
     this.socket = new WebSocket(wsUrl);
 
@@ -156,13 +157,36 @@ class WebSocketService {
     }
 
     try {
-      const userId = Number(authHelper.getUserId());
-      const messageStr = JSON.stringify({
-        ...message,
-        author_id: userId
+      const userId = authHelper.getUserId();
+      const userName = authHelper.getUserName();
+      
+      if (!userId) {
+        console.error('Cannot send message: User ID is not available');
+        return;
+      }
+
+      // Получаем информацию о пользователе из API
+      authAPI.getUserInfo().then(userInfo => {
+        const messageStr = JSON.stringify({
+          ...message,
+          author_id: Number(userId),
+          author_name: userInfo.name || userName || 'Anonymous'
+        });
+        
+        console.log('Sending WebSocket message:', messageStr);
+        this.socket.send(messageStr);
+      }).catch(error => {
+        console.error('Failed to get user info:', error);
+        // Если не удалось получить информацию о пользователе, используем имя из токена
+        const messageStr = JSON.stringify({
+          ...message,
+          author_id: Number(userId),
+          author_name: userName || 'Anonymous'
+        });
+        
+        console.log('Sending WebSocket message with fallback name:', messageStr);
+        this.socket.send(messageStr);
       });
-      console.log('Sending WebSocket message:', messageStr);
-      this.socket.send(messageStr);
     } catch (error) {
       console.error('Failed to send WebSocket message:', error);
     }
