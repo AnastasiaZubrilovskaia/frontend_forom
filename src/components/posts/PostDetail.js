@@ -29,7 +29,7 @@ const PostDetail = () => {
   const handleDelete = async () => {
     try {
       await forumAPI.posts.delete(id);
-      // Redirect to home after deletion
+     
       window.location.href = '/';
     } catch (error) {
       setError(error.message || 'Failed to delete post');

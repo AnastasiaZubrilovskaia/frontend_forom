@@ -11,7 +11,7 @@ const PostList = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const currentUserId = authHelper.getUserId();
 
-  // Debug logs
+
   console.log('PostList - currentUserId:', currentUserId);
 
   useEffect(() => {
@@ -85,7 +85,6 @@ const PostList = () => {
         )}
       </div>
       {posts.map(post => {
-        // Debug logs for each post
         console.log('Post:', post);
         console.log('User:', { id: currentUserId });
         console.log('Post author ID:', post.author_id);

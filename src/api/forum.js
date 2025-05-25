@@ -12,7 +12,7 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add token to all requests
+
 api.interceptors.request.use(
   config => {
     const token = authHelper.getAccessToken();
@@ -26,13 +26,13 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+
 api.interceptors.response.use(
   response => response.data,
   async error => {
     const originalRequest = error.config;
 
-    // Не повторяем запросы на удаление и запросы на обновление токена
+    
     if ((error.response?.status === 401 || error.response?.status === 403) && 
         !originalRequest._retry && 
         !originalRequest.url.includes('/auth/refresh') &&

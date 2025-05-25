@@ -11,7 +11,7 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add token to all requests
+
 api.interceptors.request.use(
   config => {
     const token = localStorage.getItem('access_token');
@@ -25,14 +25,14 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling token refresh
+
 api.interceptors.response.use(
   response => {
-    console.log('API Response:', response); // Debug log for all responses
+    console.log('API Response:', response); 
     return response.data;
   },
   async error => {
-    console.error('API Error:', error.response?.data || error); // Debug log for all errors
+    console.error('API Error:', error.response?.data || error); 
     const originalRequest = error.config;
     
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('refresh')) {
@@ -42,7 +42,7 @@ api.interceptors.response.use(
         const { accessToken } = await refreshToken(localStorage.getItem('access_token'));
         localStorage.setItem('access_token', accessToken);
         
-        // Update the original request with new token
+        
         if (originalRequest.data) {
           const data = JSON.parse(originalRequest.data);
           originalRequest.data = JSON.stringify({ ...data, accessToken });
@@ -72,7 +72,6 @@ export const authAPI = {
       const response = await api.post('/login', { email, password });
       console.log('Login API Response:', response);
       
-      // Проверяем оба варианта: snake_case и camelCase
       const accessToken = response.access_token || response.accessToken;
       const refreshToken = response.refresh_token || response.refreshToken;
       
@@ -80,7 +79,6 @@ export const authAPI = {
         throw new Error('No access token received');
       }
 
-      // Декодируем токен для проверки
       try {
         const payload = accessToken.split('.')[1];
         const decodedPayload = atob(payload);

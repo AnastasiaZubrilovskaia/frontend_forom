@@ -37,7 +37,7 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
   const canEdit = currentUserId === post.author_id;
   const canDelete = isAdminBoolean || currentUserId === post.author_id;
 
-  // Debug logs
+  
   console.log('PostItem - post:', post);
   console.log('PostItem - isAdmin (local state):', isAdmin);
   console.log('PostItem - isAdminBoolean:', isAdminBoolean);

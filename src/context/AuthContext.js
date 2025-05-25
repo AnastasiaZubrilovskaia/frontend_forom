@@ -15,19 +15,18 @@ export const AuthProvider = ({ children }) => {
       const token = authHelper.getAccessToken();
       if (token) {
         try {
-          // First validate the token
+          
           const isValid = await authAPI.validateToken();
           if (!isValid.valid) {
             throw new Error('Invalid token');
           }
 
-          // Then get user info
           const userInfo = await authAPI.getUserInfo();
-          console.log('Initial user info:', userInfo); // Debug log
+          console.log('Initial user info:', userInfo); 
           if (userInfo && userInfo.user_id) {
           setUser(userInfo);
           
-          // Check admin status
+         
           const adminStatus = await authAPI.isAdmin(userInfo.user_id);
           setIsAdmin(adminStatus.is_admin);
           } else {
@@ -46,42 +45,42 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // 1. Perform login request
-      const response = await authAPI.login(email, password);
-      console.log('Login response:', response); // Debug log
       
-      // 2. Check for tokens
+      const response = await authAPI.login(email, password);
+      console.log('Login response:', response); 
+      
+    
       if (!response || !response.accessToken) {
         throw new Error('No access token received');
       }
 
-      // 3. Get user info
+      
       const userInfo = await authAPI.getUserInfo();
-      console.log('User info after login:', userInfo); // Debug log
+      console.log('User info after login:', userInfo); 
       
       if (!userInfo || !userInfo.user_id) {
-        console.error('Invalid user info:', userInfo); // Debug log
+        console.error('Invalid user info:', userInfo); 
         throw new Error('Failed to get user info');
       }
 
-      // 4. Check admin status
+     
       const adminStatus = await authAPI.isAdmin(userInfo.user_id);
-      console.log('Admin status:', adminStatus); // Debug log
+      console.log('Admin status:', adminStatus); 
 
-      // 5. Update state
+    
       const userData = {
         id: userInfo.user_id,
         name: userInfo.name,
         email: email
       };
-      console.log('Setting user data:', userData); // Debug log
+      console.log('Setting user data:', userData); 
       setUser(userData);
       setIsAdmin(adminStatus.is_admin);
 
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      authHelper.clearTokens(); // Clear any partial auth data
+      authHelper.clearTokens(); 
       return {
         success: false,
         message: error.message || 'Login failed'
@@ -92,13 +91,13 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     try {
       const response = await authAPI.register(name, email, password);
-      console.log('Register response in context:', response); // Debug log
+      console.log('Register response in context:', response); 
       
       if (!response || !response.user_id) {
         throw new Error('Registration failed - no user ID received');
       }
       
-      // После успешной регистрации сразу логиним пользователя
+     
       const loginResult = await login(email, password);
       if (!loginResult.success) {
         throw new Error('Registration successful but login failed');

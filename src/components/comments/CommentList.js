@@ -8,8 +8,7 @@ const CommentList = ({ postId, commentVersion }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  // Debug logs
+  
   console.log('CommentList - isAdmin:', isAdmin);
   console.log('CommentList - postId:', postId);
   console.log('CommentList - commentVersion:', commentVersion);

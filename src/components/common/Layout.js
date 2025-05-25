@@ -10,7 +10,7 @@ const Layout = ({ children }) => {
         {children}
       </main>
       <footer className="app-footer">
-        <p>© 2025 Форумное приложение</p>
+        <p>© 2025 Форум</p>
       </footer>
     </div>
   );

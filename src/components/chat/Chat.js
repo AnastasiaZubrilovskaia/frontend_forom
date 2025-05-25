@@ -26,7 +26,11 @@ const Chat = () => {
       try {
         const fetchedMessages = await forumAPI.getMessages();
         console.log('Fetched messages:', fetchedMessages);
-        setMessages(fetchedMessages);
+        // Сортируем сообщения по времени создания (старые сверху)
+        const sortedMessages = [...fetchedMessages].sort((a, b) => 
+          new Date(a.created_at) - new Date(b.created_at)
+        );
+        setMessages(sortedMessages);
       } catch (error) {
         console.error('Failed to fetch messages:', error);
       }
@@ -54,12 +58,14 @@ const Chat = () => {
         }
 
         console.log('Adding new messages:', newMessages);
-        return [...newMessages, ...prev];
+        // Добавляем новые сообщения в конец списка
+        return [...prev, ...newMessages];
       });
     }
   }, [wsMessages]);
 
   useEffect(() => {
+    // Прокручиваем к последнему сообщению при добавлении новых
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 

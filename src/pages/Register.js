@@ -16,21 +16,21 @@ const Register = () => {
     } catch (err) {
       console.error('Registration error details:', err);
       
-      // Extract error information
+     
       const errorData = err.data || {};
       let errorMessage = '';
 
-      // Handle validation errors
+      
       if (err.validationErrors) {
         errorMessage = Object.entries(err.validationErrors)
           .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
           .join('\n');
       } 
-      // Handle server error message
+     
       else if (errorData.message || errorData.error) {
         errorMessage = errorData.message || errorData.error;
       }
-      // Handle other error types
+      
       else if (err.message) {
         errorMessage = err.message;
       } else {

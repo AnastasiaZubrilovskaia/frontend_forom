@@ -11,7 +11,6 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add token to all requests
 api.interceptors.request.use(
   config => {
     const token = localStorage.getItem('access_token');
@@ -25,7 +24,6 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling errors
 api.interceptors.response.use(
   response => {
     console.log('Posts API Response:', response);
@@ -154,7 +152,7 @@ export const postsAPI = {
   }
 };
 
-// Export individual functions
+
 export const createPost = postsAPI.createPost;
 export const getPosts = postsAPI.getPosts;
 export const getPost = postsAPI.getPost;

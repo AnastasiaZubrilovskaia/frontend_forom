@@ -12,7 +12,7 @@ const PostList = () => {
   const fetchPosts = async () => {
     try {
       const postsData = await forumAPI.getPosts();
-      console.log('Fetched posts:', postsData); // Debug log
+      console.log('Fetched posts:', postsData); 
       setPosts(postsData);
     } catch (err) {
       setError(err.message || 'Failed to fetch posts');

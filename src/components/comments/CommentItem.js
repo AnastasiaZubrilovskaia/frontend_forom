@@ -15,7 +15,6 @@ const CommentItem = ({ comment, onDelete, onUpdate, isAdmin = false }) => {
   const isAdminBoolean = Boolean(isAdmin);
   const canDelete = isAdminBoolean || currentUserId === comment.author_id;
 
-  // Debug logs
   console.log('CommentItem - comment:', comment);
   console.log('CommentItem - currentUserId:', currentUserId);
   console.log('CommentItem - comment.author_id:', comment.author_id);
