@@ -4,9 +4,7 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import { useAuth } from '../../context/AuthContext';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { webSocketService } from '../../api/websocket';
 
-const MESSAGE_LIFETIME = 24 * 60 * 60 * 1000; // 24 hours
 
 const Chat = () => {
   const { user } = useAuth();
@@ -14,12 +12,12 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const { messages: wsMessages, sendMessage, isConnected } = useWebSocket();
 
-  // Переподключаем WebSocket при изменении пользователя
-  useEffect(() => {
-    console.log('User changed, reconnecting WebSocket');
-    webSocketService.disconnect();
-    webSocketService.connect();
-  }, [user]);
+  // // Переподключаем WebSocket при изменении пользователя
+  // useEffect(() => {
+  //   console.log('User changed, reconnecting WebSocket');
+  //   webSocketService.disconnect();
+  //   webSocketService.connect();
+  // }, [user]);
 
   useEffect(() => {
     const fetchMessages = async () => {

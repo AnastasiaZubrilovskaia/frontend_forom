@@ -1,194 +1,193 @@
 import { authHelper, authAPI } from './auth';
 
+
 class WebSocketService {
   constructor() {
     this.socket = null;
     this.callbacks = {};
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
+    this.maxReconnectAttempts = 10;
     this.reconnectDelay = 1000;
+    this.reconnectTimeout = null;
     this.isConnecting = false;
+    this.isReconnecting = false;
   }
 
   async connect() {
+
+    console.log('connect() called, isConnecting:', this.isConnecting, 'isReconnecting:', this.isReconnecting);
     if (this.socket?.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected');
       return;
     }
-
-    if (this.isConnecting) {
-      console.log('WebSocket connection in progress');
+  
+    if (this.isConnecting || this.isReconnecting) {
+      console.log('Already connecting or reconnecting');
       return;
     }
-
+  
     this.isConnecting = true;
-
+  
     if (this.socket) {
       this.disconnect();
     }
-
+  
     try {
-      const token = authHelper.getAccessToken();
-      let currentToken = token;
-
-      // Если есть токен, проверяем его валидность
+      let token = authHelper.getAccessToken();
+      console.log('Initial token from authHelper:', token);
+  
       if (token) {
         try {
           const isValid = await authAPI.validateToken();
+          console.log('Token validation result:', isValid);
+  
           if (!isValid) {
-            console.log('Token is invalid, attempting to refresh...');
+            console.log('Token invalid. Refreshing...');
             const { accessToken } = await authAPI.refreshToken(token);
+            console.log('Received new accessToken after refresh:', accessToken);
             authHelper.setTokens(accessToken);
-            currentToken = accessToken;
+            token = accessToken;
           }
-        } catch (error) {
-          console.error('Token validation/refresh failed:', error);
-          // Если не удалось обновить токен, продолжаем без токена
-          currentToken = null;
+        } catch (e) {
+          console.error('Token validation failed:', e);
+          token = null;
         }
-    }
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname + ':8080';
-    const wsUrl = currentToken 
-      ? `${protocol}//${host}/ws?token=${encodeURIComponent(currentToken)}`
-      : `${protocol}//${host}/ws`;
-
-    console.log('Connecting to WebSocket with token:', currentToken ? 'present' : 'absent');
-    console.log('WebSocket URL:', wsUrl);
-
-    this.socket = new WebSocket(wsUrl);
-
-    this.socket.onopen = () => {
-        console.log('WebSocket connection opened');
-        this.isConnecting = false;
-      this.reconnectAttempts = 0;
-      this.reconnectDelay = 1000;
-      this.callbacks['connect']?.();
-    };
-
-      this.socket.onclose = async (event) => {
-        console.log('WebSocket connection closed:', event.code, event.reason);
-        this.isConnecting = false;
-      this.callbacks['disconnect']?.(event);
-        
-      if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
-          console.log(`Attempting to reconnect (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})...`);
-          
-          // Пробуем обновить токен перед переподключением
-          try {
-            const token = authHelper.getAccessToken();
-            if (token) {
-              const { accessToken } = await authAPI.refreshToken(token);
-              authHelper.setTokens(accessToken);
-            }
-          } catch (error) {
-            console.error('Failed to refresh token during reconnect:', error);
-          }
-
-        setTimeout(() => {
-          this.reconnectAttempts++;
-          this.reconnectDelay *= 2;
-          this.connect();
-        }, this.reconnectDelay);
+      } else {
+        console.log('No token available');
       }
-    };
-
-    this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      this.callbacks['error']?.(error);
-    };
-
-      this.socket.onmessage = async (event) => {
-      try {
-        const message = JSON.parse(event.data);
-          // Игнорируем сообщения от dev-сервера
-          if (message.type && ['hot', 'liveReload', 'reconnect', 'overlay', 'hash', 'warnings'].includes(message.type)) {
+  
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname + ':8080';
+      const wsUrl = token
+        ? `${protocol}//${host}/ws?token=${encodeURIComponent(token)}`
+        : `${protocol}//${host}/ws`;
+  
+      console.log('Connecting WebSocket to URL:', wsUrl);
+  
+      this.socket = new WebSocket(wsUrl);
+  
+      this.socket.onopen = () => {
+        console.log('WebSocket connected');
+        this.isConnecting = false;
+        this.isReconnecting = false;
+        this.reconnectAttempts = 0;
+        this.reconnectDelay = 1000;
+  
+        if (this.reconnectTimeout) {
+          clearTimeout(this.reconnectTimeout);
+          this.reconnectTimeout = null;
+        }
+  
+        this.callbacks['connect']?.();
+      };
+  
+      this.socket.onclose = async (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
+        this.isConnecting = false;
+        this.isReconnecting = false;
+  
+        this.callbacks['disconnect']?.(event);
+  
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          if (this.reconnectTimeout || this.isReconnecting) {
+            console.log('Reconnect already scheduled.');
             return;
           }
-
-          // Если получили ошибку авторизации, пробуем обновить токен
-          if (message.error === 'unauthorized' || message.error === 'token_expired') {
-            console.log('Received unauthorized error, attempting to refresh token...');
+  
+          this.isReconnecting = false;
+          this.reconnectAttempts++;
+          const delay = this.reconnectDelay;
+          this.reconnectDelay = Math.min(this.reconnectDelay * 2, 16000);
+  
+          console.log(`Reconnecting in ${delay}ms... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+  
+          this.reconnectTimeout = setTimeout(async () => {
+            this.reconnectTimeout = null;
+  
             try {
               const token = authHelper.getAccessToken();
+              console.log('Reconnect: current token before refresh:', token);
               if (token) {
                 const { accessToken } = await authAPI.refreshToken(token);
+                console.log('Reconnect: refreshed token:', accessToken);
                 authHelper.setTokens(accessToken);
-                // Переподключаемся с новым токеном
+              }
+            } catch (error) {
+              console.error('Reconnect token refresh failed:', error);
+            }
+  
+            await this.connect();
+          }, delay);
+        } else {
+          console.warn('Max reconnect attempts reached.');
+        }
+      };
+  
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        this.callbacks['error']?.(error);
+      };
+  
+      this.socket.onmessage = async (event) => {
+        try {
+          const message = JSON.parse(event.data);
+  
+          if (['hot', 'liveReload', 'reconnect', 'overlay', 'hash', 'warnings'].includes(message.type)) return;
+  
+          if (message.error === 'unauthorized' || message.error === 'token_expired') {
+            console.warn('Unauthorized WebSocket message, retrying...');
+            try {
+              const token = authHelper.getAccessToken();
+              console.log('Unauthorized message: current token before refresh:', token);
+              if (token) {
+                const { accessToken } = await authAPI.refreshToken(token);
+                console.log('Unauthorized message: refreshed token:', accessToken);
+                authHelper.setTokens(accessToken);
                 this.disconnect();
                 await this.connect();
                 return;
               }
             } catch (error) {
-              console.error('Failed to refresh token:', error);
-              // Если не удалось обновить токен, продолжаем как анонимный пользователь
+              console.error('Refresh failed:', error);
               this.disconnect();
               await this.connect();
               return;
             }
           }
-
-          console.log('WebSocket message received:', message);
-        this.callbacks['message']?.(message);
-      } catch (e) {
-          console.error('Failed to parse WebSocket message:', e, event.data);
-      }
-    };
+  
+          this.callbacks['message']?.(message);
+        } catch (e) {
+          console.error('Invalid message:', event.data, e);
+        }
+      };
     } catch (error) {
-      console.error('Failed to establish WebSocket connection:', error);
+      console.error('WebSocket connection error:', error);
       this.isConnecting = false;
     }
   }
+  
 
   disconnect() {
     if (this.socket) {
       console.log('Disconnecting WebSocket');
       this.socket.close();
       this.socket = null;
-      this.isConnecting = false;
+    }
+
+    this.isConnecting = false;
+    this.isReconnecting = false;
+
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
   }
 
   sendMessage(message) {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      console.error('Cannot send message: WebSocket is not connected');
-      return;
-    }
-
-    try {
-      const userId = authHelper.getUserId();
-      const userName = authHelper.getUserName();
-      
-      if (!userId) {
-        console.error('Cannot send message: User ID is not available');
-        return;
-      }
-
-      // Получаем информацию о пользователе из API
-      authAPI.getUserInfo().then(userInfo => {
-        const messageStr = JSON.stringify({
-          ...message,
-          author_id: Number(userId),
-          author_name: userInfo.name || userName || 'Anonymous'
-        });
-        
-        console.log('Sending WebSocket message:', messageStr);
-        this.socket.send(messageStr);
-      }).catch(error => {
-        console.error('Failed to get user info:', error);
-        // Если не удалось получить информацию о пользователе, используем имя из токена
-        const messageStr = JSON.stringify({
-          ...message,
-          author_id: Number(userId),
-          author_name: userName || 'Anonymous'
-        });
-        
-        console.log('Sending WebSocket message with fallback name:', messageStr);
-        this.socket.send(messageStr);
-      });
-    } catch (error) {
-      console.error('Failed to send WebSocket message:', error);
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(message));
+    } else {
+      console.warn('WebSocket is not connected. Message not sent.');
     }
   }
 
