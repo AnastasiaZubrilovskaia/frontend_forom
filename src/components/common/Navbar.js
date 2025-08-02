@@ -14,8 +14,6 @@ const Navbar = () => {
       <div className="navbar-links">
         {user ? (
           <>
-            <Link to="/">Главная</Link>
-            {isAdmin && <Link to="/admin">Админка</Link>}
             <button onClick={logout} className="logout-btn">
               Выйти ({user.name})
             </button>

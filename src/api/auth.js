@@ -209,26 +209,6 @@ export const authAPI = {
       throw error;
     }
   },
-
-  grantAdmin: async (user_id) => {
-    try {
-    const token = localStorage.getItem('access_token');
-      const response = await api.post('/grant-admin', { 
-        adminAccessToken: token,
-      user_id: user_id 
-    });
-      
-      const success = response.success;
-      if (typeof success !== 'boolean') {
-        throw new Error('Invalid grant admin response');
-      }
-      
-      return { success };
-    } catch (error) {
-      console.error('Grant admin error:', error);
-      throw error;
-    }
-  },
 };
 
 export const authHelper = {
@@ -325,4 +305,3 @@ export const refreshToken = authAPI.refreshToken;
 export const validateToken = authAPI.validateToken;
 export const getUserInfo = authAPI.getUserInfo;
 export const isAdmin = authAPI.isAdmin;
-export const grantAdmin = authAPI.grantAdmin;

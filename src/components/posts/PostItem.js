@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { forumAPI } from '../../api/forum';
 import { authHelper } from '../../api/auth';
-import CommentItem from '../comments/CommentItem';
 import '../../styles/PostItem.css';
 import CommentList from '../comments/CommentList';
 import CommentForm from '../comments/CommentForm';
@@ -17,8 +16,6 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [isCommenting, setIsCommenting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const abortControllerRef = useRef(null);
   const isAuthenticated = authHelper.isAuthenticated();
@@ -59,33 +56,6 @@ const PostItem = ({ post, onDelete, onUpdate }) => {
     } catch (err) {
       setError('Не удалось загрузить комментарии');
     }
-  };
-
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    setError('');
-    setLoading(true);
-
-    try {
-      await forumAPI.createComment(post.id, newComment);
-      setNewComment('');
-      setIsCommenting(false);
-      loadComments();
-    } catch (err) {
-      setError(err.message || 'Не удалось добавить комментарий');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCommentDelete = async (commentId) => {
-    await loadComments();
-  };
-
-  const handleCommentUpdate = async () => {
-    await loadComments();
   };
 
   const handleEdit = async (e) => {

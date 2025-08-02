@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { forumAPI } from '../../api/forum';
-import CommentList from '../comments/CommentsList';
+import CommentList from '../comments/CommentList';
 import CommentForm from '../comments/CommentForm';
 import { useAuth } from '../../context/AuthContext';
+
 const PostDetail = () => {
   const { id } = useParams();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user, isAdmin } = useAuth();
+  const [commentVersion, setCommentVersion] = useState(0); // Добавляем состояние для обновления комментариев
 
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const postData = await forumAPI.posts.getById(id);
+        const postData = await forumAPI.getPost(id);
         setPost(postData);
       } catch (err) {
         setError(err.message || 'Failed to fetch post');
@@ -28,12 +30,16 @@ const PostDetail = () => {
 
   const handleDelete = async () => {
     try {
-      await forumAPI.posts.delete(id);
-     
+      await forumAPI.deletePost(id);
       window.location.href = '/';
     } catch (error) {
       setError(error.message || 'Failed to delete post');
     }
+  };
+
+  // Функция для обновления списка комментариев
+  const handleCommentAdded = () => {
+    setCommentVersion(prev => prev + 1);
   };
 
   if (loading) return <div className="loading">Loading post...</div>;
@@ -69,13 +75,13 @@ const PostDetail = () => {
       <div className="comments-section">
         <h2>Comments</h2>
         {user ? (
-          <CommentForm postId={post.id} />
+          <CommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
         ) : (
           <div className="login-prompt">
             Please log in to leave a comment
           </div>
         )}
-        <CommentList postId={post.id} />
+        <CommentList postId={post.id} commentVersion={commentVersion} />
       </div>
     </div>
   );

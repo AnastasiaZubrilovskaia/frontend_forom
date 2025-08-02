@@ -7,8 +7,6 @@ import HomePage from './pages/HomePage';
 import PostPage from './pages/PostPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import AdminPage from './pages/AdminPage';
-import ProtectedRoute from './components/common/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import './styles/main.css';
 
@@ -25,14 +23,6 @@ function App() {
                 <Route path="/posts/:id" element={<PostPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <AdminPage />
-                    </ProtectedRoute>
-                  } 
-                />
               </Routes>
             </Layout>
           </WebSocketProvider>
